@@ -1,0 +1,30 @@
+services:
+  backend:
+    build:
+      context: ./flask-notely
+    container_name: flask
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/flask-notely
+    depends_on:
+      - mongo
+
+  frontend:
+    build:
+      context: ./notely-front
+    container_name: nginx
+    ports:
+      - "80:80"
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:

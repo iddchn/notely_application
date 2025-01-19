@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from bson.objectid import ObjectId
 from init_app import mongo_db
-from datetime import datetime
+from datetime import datetime, timezone
 
 note_blueprint = Blueprint("notes", __name__)
 
@@ -17,7 +17,7 @@ def create_note():
         "user_id": ObjectId(data["user_id"]),
         "header": data["header"],
         "body": data["body"],
-        "created_at": datetime.utcnow()
+        "created_at":datetime.now(timezone.utc)
     }
     result = mongo_db.notes.insert_one(new_note)
     return jsonify({"message": "Note created successfully", "note_id": str(result.inserted_id)}), 201
@@ -57,7 +57,7 @@ def update_note(note_id):
     updated_note = {
         "header": data["header"],
         "body": data["body"],
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(timezone.utc)
     }
     result = mongo_db.notes.update_one({"_id": ObjectId(note_id)}, {"$set": updated_note})
     if result.matched_count == 0:

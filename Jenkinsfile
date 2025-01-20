@@ -7,6 +7,7 @@ pipeline {
         AWS_ACOUNT_ID="600627353694"
         ADMIN_EMAIL="idancohen55@gmail.com"
         PRODUCT="notely"
+        GIT_REPO="github.com/iddchn/notely_application.git"
     }
 
     stages {
@@ -38,6 +39,7 @@ pipeline {
                                 url: "${env.GIT_REPO_URL}"
                         ]]
                     ])
+                    echo "${env.GIT_REPO_URL}"
                 }
             }
         }
@@ -177,7 +179,7 @@ pipeline {
                        sh """
                        git config --global user.name ${GITHUB_USERNAME}
                        git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
-                       git push origin ${env.LATEST_TAG}
+                       git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO} ${env.LATEST_TAG}
                        """
                     }
                 }

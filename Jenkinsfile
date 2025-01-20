@@ -93,20 +93,20 @@ pipeline {
                         def success = false
 
                         while (retries < max_retries && !success) {
-                            try {
-                                if (sh(script: "curl -f http://backend:5001/health", returnStatus: true) == 0){
-                                    success = true
-                                    echo "Backend health check succeeded!"
-                                }
-                            } catch (Exception e) {
+                            if (sh(script: "curl -f http://backend:5001/health", returnStatus: true) == 0){
+                                success = true
+                                echo "Backend health check succeeded!"
+                            }eles{
                                 retries++
+
                                 if (retries < max_retries) {
-                                    echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
-                                    sleep ${retry_delay}
+                                echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
+                                sleep ${retry_delay}
                                 }
                                 else {
                                     echo "Health check failed ${retries} times. Marking as failed."
                                     error "Failed to test backend health after ${max_retries} attempts."
+                                    exit 1
                                 }
                             }
                         }
@@ -166,7 +166,7 @@ pipeline {
 
                 sh """
                 echo "creating tag for docker ${PRODUCT}_image"
-                docker tag ${PRODUCT}_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
                 echo "pushing image to AES ECR"
                 docker push ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
                 """

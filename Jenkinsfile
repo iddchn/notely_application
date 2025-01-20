@@ -48,7 +48,7 @@ pipeline {
                         echo "running unit test"
                     else
                         echo "installing pytest"
-                        pip3 install pytest
+                        pip3 install pytest || true
                     fi
                     pytest
                 """

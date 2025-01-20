@@ -31,7 +31,7 @@ pipeline {
                     deleteDir()
                     checkout ([
                         $class: 'GitSCM',
-                        branches: [[name: '*']],
+                        branches: [[name: '**']],
                         userRemoteConfigs: [[
                                 credentialsId: 'GitHub_user_pass',
                                 url: "${gitRepoUrl}"

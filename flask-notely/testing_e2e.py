@@ -1,7 +1,7 @@
 import requests
 import json
 
-BASE_URL = "http://localhost:5001"
+BASE_URL = "flask:5001"
 
 def test_signup():
     url = f"{BASE_URL}/user/signup"

@@ -101,7 +101,8 @@ pipeline {
 
                     while (retries < max_retries && !success) {
                         try {
-                            def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
+                            def status = sh(script: "curl -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
+                            echo "status: ${status}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (status == '200'){
                                     success = true
                                 echo "Backend health check succeeded!"
@@ -109,6 +110,7 @@ pipeline {
                                 echo "Backend health check failed with status code: ${status}"
                             }
                         } catch (Exception e) {
+                            echo "retries: ${retries}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (retries < max_retries) {
                                 retries++
                                 echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
@@ -199,7 +201,7 @@ pipeline {
                 echo "stopping ${PRODUCT} containers"
                 docker compose down
                 echo "deleting ${PRODUCT} images"
-                docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image -f //TODO: add mongo image to delete list
+                docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo -f //TODO: add mongo image to delete list
                 echo "deleting ${PRODUCT} volumes"
                 docker volume prune -f
                 """

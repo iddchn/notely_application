@@ -114,7 +114,7 @@ pipeline {
                         } catch (Exception e) {
                             echo "retries: ${retries}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (retries < max_retries) {
-                                echo "${retrise} is smaller then ${max_retries}"
+                                echo "${retries} is smaller then ${max_retries}"
                                 retries++
                                 echo "retries +1 : ${retries}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                                 echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."

@@ -59,55 +59,62 @@ pipeline {
             steps {
                 sh """
                 cd flask-notely
-                echo "running docker build for ${PRODUCT} Dockerfile version ${env.LATEST_TAG ?: VERSION}"
-                docker build -t ${PRODUCT}_image:${env.LATEST_TAG ?: VERSION} .
-                echo "build image successful."
+                echo "running docker build for ${PRODUCT} flask Dockerfile version ${env.LATEST_TAG ?: VERSION}"
+                docker build -t ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} .
+                echo "build flask image successful."
+                cd ../notely-front
+                docker build -t ${PRODUCT}_nginx_image:${env.LATEST_TAG ?: VERSION} .
+                echo "build nginx image successful."
                 """
             }
         }
 
         stage("E2E Test") {
             steps {
-                withPythonEnv('python3') {
-                    sh """
-                        echo "validate if docker-compose is installed"
-                        if command -v docker-compose &> /dev/null; then
-                            echo "docker-compose is installed."
-                        else
-                            echo "docker compose is NOT installed."
-                            echo "installing docker-compose"
-                            apt-get install docker-compose-plugin
-                            echo "docker compose installed successfully"
-                        fi
-                        echo "running ${PRODUCT} application on local container"
-                        docker compose up -d
-
-                        MAX_RETRIES=5
-                        RETRY_DELAY=10
-                        RETRIES=0
-                        while [ ${RETRIES} -lt ${MAX_RETRIES} ]; do
-                            if curl -s http://backend:5001/health > /dev/null; then
-                                echo "Backend is up and running!"
-                                break
+                script{
+                    withPythonEnv('python3') {
+                        sh """
+                            echo "validate if docker-compose is installed"
+                            if command -v docker-compose &> /dev/null; then
+                                echo "docker-compose is installed."
                             else
-                                echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
-                                sleep ${RETRY_DELAY}
-                                RETRIES++
+                                echo "docker compose is NOT installed."
+                                echo "installing docker-compose"
+                                apt-get install docker-compose-plugin
+                                echo "docker compose installed successfully"
                             fi
-                        done
+                            echo "running ${PRODUCT} application on local container"
+                            docker compose up -d
+                            """
 
-                        if [ ${RETRIES} -eq ${MAX_RETRIES} ]; then
-                            echo "Backend failed to start within the timeout period."
-                            exit 1
-                        fi
+                            def MAX_RETRIES = 5
+                            def RETRY_DELAY = 10
+                            def RETRIES = 0
 
-                        echo "creating container finished successfully"
+                            while (RETRIES < MAX_RETRIES) {
+                                try {
+                                    sh """
+                                        echo testing backend health
+                                        curl http://backend:5001/health
+                                    """
+                                    success = true
+                                } catch (Exception e) {
+                                    RETRIES++
+                                    echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
+                                    if (RETRIES < MAX_RETRIES) {
+                                        sleep ${RETRY_DELAY}
+                                    }
+                                }
+                            }
+                        sh """
+                            echo "creating container finished successfully"
 
-                        pip install requests
-                        echo "running e2e test"
-                        python flask-notely/testing_e2e.py
-                        echo "e2e test finished successfully"
-                    """
+                            pip install requests
+                            echo "running e2e test"
+                            python flask-notely/testing_e2e.py
+                            echo "e2e test finished successfully"
+                        """
+                    }
                 }
             }
         }

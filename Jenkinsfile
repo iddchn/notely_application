@@ -94,12 +94,10 @@ pipeline {
 
                         while (retries < max_retries && !success) {
                             try {
-                                sh """
-                                    echo testing backend health
-                                    curl -f http://backend:5001/health
-                                """
-                                success = true
-                                echo "Backend health check succeeded!"
+                                if (sh(script: "curl -f http://backend:5001/health", returnStatus: true) == 0){
+                                    success = true
+                                    echo "Backend health check succeeded!"
+                                }
                             } catch (Exception e) {
                                 retries++
                                 if (retries < max_retries) {

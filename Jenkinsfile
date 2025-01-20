@@ -92,7 +92,7 @@ pipeline {
                             else
                                 echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
                                 sleep ${RETRY_DELAY}
-                                RETRIES=${((RETRIES+1))}
+                                RETRIES=$((RETRIES+1))
                             fi
                         done
 

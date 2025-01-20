@@ -5,7 +5,7 @@ pipeline {
         ECR_REPO="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely"
         AWS_REGION="ap-south-1"
         AWS_ACOUNT_ID="600627353694"
-        ADMIN_EMAIL="idancohen55@gmail.com"
+        GIT_EMAIL="idancohen55@gmail.com"
         PRODUCT="notely"
     }
 
@@ -165,6 +165,8 @@ pipeline {
                        echo "commit hash is: ${commit_hash}"
 
                        sh """
+                       git config --global user.email ${GIT_EMAIL}
+                       fit config --global user.name ${GITHUB_USERNAME}
                        git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
                        git push origin ${env.LATEST_TAG}
                        """

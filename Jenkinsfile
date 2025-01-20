@@ -42,10 +42,8 @@ pipeline {
                         else
                             echo "Python 3 is NOT installed."
                             echo "installing python requests package"
-                            apt-get update
-                            apt-get install -y python3
-                            apt-get install python3-venv
                         fi
+                        pip3 install -r requirements.txt
 
                         pip3 install pytest
                         echo "running unit test"
@@ -67,25 +65,27 @@ pipeline {
 
         stage("E2E Test") {
             steps {
-                sh """
-                echo "validate if docker-compose is installed"
-                if command -v docker-compose &> /dev/null; then
-                    echo "docker-compose is installed."
-                else
-                    echo "docker-compose is NOT installed."
-                    echo "installing docker-compose"
-                    apt-get install -y docker-compose
-                    echo "docker-compose installed successfully"
-                fi
-                echo "running ${PRODUCT} application on local container"
-                docker-compose up -d
-                echo "creating container finished successfully"
+                withPythonEnv('python3') {
+                    sh """
+                        echo "validate if docker-compose is installed"
+                        if command -v docker-compose &> /dev/null; then
+                            echo "docker-compose is installed."
+                        else
+                            echo "docker-compose is NOT installed."
+                            echo "installing docker-compose"
+                            apt-get install -y docker-compose
+                            echo "docker-compose installed successfully"
+                        fi
+                        echo "running ${PRODUCT} application on local container"
+                        docker-compose up -d
+                        echo "creating container finished successfully"
 
-                pip install requests
-                echo "running e2e test"
-                python e2e_test.py
-                echo "e2e test finished successfully"
-                """
+                        pip install requests
+                        echo "running e2e test"
+                        python e2e_test.py
+                        echo "e2e test finished successfully"
+                    """
+                }
             }
         }
 

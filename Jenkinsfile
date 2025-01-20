@@ -101,7 +101,7 @@ pipeline {
 
                     while (retries < max_retries && !success) {
                         try {
-                            def status = sh(script: "curl -w '%{http_code}' http://localhost:5001/health || true", returnStdout: true).trim()
+                            def status = sh(script: "curl -w '%{http_code}' http://localhost:5001/health", returnStdout: true).trim() || true
                             echo "status: ${status}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (status == '200'){
                                     success = true
@@ -112,7 +112,9 @@ pipeline {
                         } catch (Exception e) {
                             echo "retries: ${retries}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (retries < max_retries) {
+                                echo "${retrise} is smaller then ${max_retries}"
                                 retries++
+                                echo "retries +1 : ${retries}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                                 echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
                                 sleep ${retry_delay}
                             } else {

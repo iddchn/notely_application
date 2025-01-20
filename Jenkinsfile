@@ -157,9 +157,9 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {}
+                withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                     script {
-                    def commit_hash = sh(
+                        def commit_hash = sh(
                             script: "git rev-parse HEAD",
                             returnStdout: true
                         ).trim()
@@ -184,17 +184,17 @@ pipeline {
             steps {
                 withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: '1', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                     sh """
-                    echo "Login to aws ecr"
-                    aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${AWS_ACOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                        echo "Login to aws ecr"
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${AWS_ACOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
                     """
                 }
 
                 sh """
-                echo "creating tag for docker ${PRODUCT}_image"
-                docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
-                echo "pushing image to AES ECR"
-                docker push ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                    echo "creating tag for docker ${PRODUCT}_image"
+                    docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                    echo "pushing image to AES ECR"
+                    docker push ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
                 """
             }
         }

@@ -85,27 +85,35 @@ pipeline {
                             fi
                             echo "running ${PRODUCT} application on local container"
                             docker compose up -d
-                            """
+                        """
 
-                            def MAX_RETRIES = 5
-                            def RETRY_DELAY = 10
-                            def RETRIES = 0
+                        def max_retries = 5
+                        def retry_delay = 10
+                        def retries = 0
+                        def success = false
 
-                            while (RETRIES < MAX_RETRIES) {
-                                try {
-                                    sh """
-                                        echo testing backend health
-                                        curl http://backend:5001/health
-                                    """
-                                    success = true
-                                } catch (Exception e) {
-                                    RETRIES++
-                                    echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
-                                    if (RETRIES < MAX_RETRIES) {
-                                        sleep ${RETRY_DELAY}
-                                    }
+                        while (retries < max_retries && !success) {
+                            try {
+                                sh """
+                                    echo testing backend health
+                                    curl http://backend:5001/health
+                                """
+                                success = true
+                            } catch (Exception e) {
+                                retries++
+                                if (retries < max_retries) {
+                                    echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
+                                    sleep ${retry_delay}
+                                }
+                                else {
+                                    echo "health check failed ${retries} times"
+                                    error "Failed to test backend health"
                                 }
                             }
+                        }
+
+                        echo "backend health check passed"
+
                         sh """
                             echo "creating container finished successfully"
 

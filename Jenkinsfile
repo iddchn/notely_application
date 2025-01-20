@@ -145,11 +145,11 @@ pipeline {
                 echo "deleting ${PRODUCT} images"
                 docker rmi nginx flask mongo
                 """
-                }
-                emailext attachLog: true, body: '', recipientProviders: [developers()], subject: 'Build results', to: '${ADMIN_EMAIL}'
             }
+            emailext attachLog: true, body: '', recipientProviders: [developers()], subject: 'Build results', to: '${ADMIN_EMAIL}'
         }
     }
+
 }
 
 def createNewTagVersion(version) {

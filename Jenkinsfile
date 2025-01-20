@@ -84,7 +84,7 @@ pipeline {
                         echo "creating container finished successfully"
 
                         echo "running e2e test"
-                        python e2e_test.py
+                        python flsk-notely/e2e_test.py
                         echo "e2e test finished successfully"
                     """
                 }

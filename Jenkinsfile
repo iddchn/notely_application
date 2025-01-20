@@ -43,9 +43,11 @@ pipeline {
                             echo "Python 3 is NOT installed."
                             echo "installing python requests package"
                         fi
-                        pip3 install -r requirements.txt
 
-                        pip3 install pytest
+                        python3 -m venv venv
+                        source venv/bin/activate
+                        pip install --upgrade pip
+                        pip install -r requirements.txt
                         echo "running unit test"
                         pytest
                     """
@@ -80,7 +82,6 @@ pipeline {
                         docker-compose up -d
                         echo "creating container finished successfully"
 
-                        pip install requests
                         echo "running e2e test"
                         python e2e_test.py
                         echo "e2e test finished successfully"

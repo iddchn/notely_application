@@ -91,39 +91,44 @@ pipeline {
             }
         }
 
+        stage("Deploment Health Check") {
+            stage {
+                script {
+                    def max_retries = 5
+                    def retry_delay = 10
+                    def retries = 0
+                    def success = false
+
+                    while (retries < max_retries && !success) {
+                        try {
+                            def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
+                            if (status == '200'){
+                                    success = true
+                                echo "Backend health check succeeded!"
+                            } else {
+                                echo "Backend health check failed with status code: ${status}"
+                            }
+                        } catch (Exception e) {
+                            if (retries < max_retries) {
+                                retries++
+                                echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
+                                sleep ${retry_delay}
+                            } else {
+                                echo "Health check failed ${retries} times. Marking as failed."
+                                error "Failed to test backend health after ${max_retries} attempts."
+                                exit 1
+                            }
+                        }
+                    }
+                    echo "backend health check passed"
+                }
+            }
+        }
+
         stage("E2E Test") {
             steps {
                 script {
                     withPythonEnv('python3') {
-                        def max_retries = 5
-                        def retry_delay = 10
-                        def retries = 0
-                        def success = false
-
-                        while (retries < max_retries && !success) {
-                            try {
-                                    def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
-                                if (status == '200'){
-                                        success = true
-                                    echo "Backend health check succeeded!"
-                                } else {
-                                    echo "Backend health check failed with status code: ${status}"
-                                }
-                            } catch (Exception e) {
-                                if (retries < max_retries) {
-                                    retries++
-                                    echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
-                                    sleep ${retry_delay}
-                                } else {
-                                    echo "Health check failed ${retries} times. Marking as failed."
-                                    error "Failed to test backend health after ${max_retries} attempts."
-                                    exit 1
-                                }
-                            }
-                        }
-
-                        echo "backend health check passed"
-
                         sh """
                             echo "creating container finished successfully"
 

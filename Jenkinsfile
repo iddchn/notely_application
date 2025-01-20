@@ -101,7 +101,7 @@ pipeline {
 
                     while (retries < max_retries && !success) {
                         try {
-                            def status = sh(script: "curl -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
+                            def status = sh(script: "curl -w '%{http_code}' http://localhost:5001/health || true", returnStdout: true).trim()
                             echo "status: ${status}!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
                             if (status == '200'){
                                     success = true

@@ -5,6 +5,9 @@ services:
     container_name: flask
     ports:
       - "5001:5001"
+    networks:
+      - app_net
+      - db_net
     environment:
       - FLASK_ENV=production
       - MONGO_URI=mongodb://mongo:27017/flask-notely
@@ -17,14 +20,24 @@ services:
     container_name: nginx
     ports:
       - "80:80"
+    networks:
+      - app_net
 
   mongo:
     image: mongo
     container_name: mongo
     ports:
       - "27017:27017"
+    networks:
+      - db_net
     volumes:
       - mongo-data:/data/db
 
 volumes:
   mongo-data:
+
+networks:
+  app_net:
+    driver: bridge
+  db_net:
+    driver: bridge

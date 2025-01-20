@@ -81,6 +81,26 @@ pipeline {
                         fi
                         echo "running ${PRODUCT} application on local container"
                         docker compose up -d
+
+                        MAX_RETRIES=5
+                        RETRY_DELAY=10
+                        RETRIES=0
+                        while [ ${RETRIES} -lt ${MAX_RETRIES} ]; do
+                            if curl -s http://backend:5001/health > /dev/null; then
+                                echo "Backend is up and running!"
+                                break
+                            else
+                                echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
+                                sleep ${RETRY_DELAY}
+                                RETRIES=${((RETRIES+1))}
+                            fi
+                        done
+
+                        if [ \$RETRIES -eq \$MAX_RETRIES ]; then
+                            echo "Backend failed to start within the timeout period."
+                            exit 1
+                        fi
+
                         echo "creating container finished successfully"
 
                         pip install requests

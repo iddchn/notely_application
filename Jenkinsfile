@@ -109,6 +109,7 @@ pipeline {
                                     success = true
                                 echo "Backend health check succeeded!"
                             } else {
+                                echo "throwing exception"
                                 throw new Exception("Unexpected status code: ${status}")
                             }
                         } catch (Exception e) {
@@ -126,7 +127,6 @@ pipeline {
                             }
                         }
                     }
-                    echo "backend health check passed"
                 }
             }
         }
@@ -136,7 +136,6 @@ pipeline {
                 script {
                     withPythonEnv('python3') {
                         sh """
-                        sleep 20
                             echo "creating container finished successfully"
 
                             pip install requests

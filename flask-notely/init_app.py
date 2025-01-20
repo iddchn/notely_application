@@ -20,7 +20,7 @@ def create_app():
     # Register Blueprints
     from application.routers.user_routers import user_blueprint
     from application.routers.note_routers import note_blueprint
-    from application.routers.health_router import health_blueprint
+    from application.routers.health_routers import health_blueprint
     app.register_blueprint(user_blueprint, url_prefix="/user")
     app.register_blueprint(note_blueprint, url_prefix="/notes")
     app.register_blueprint(health_blueprint, url_prefix="/health")

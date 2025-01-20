@@ -69,9 +69,9 @@ pipeline {
             }
         }
 
-        stage("E2E Test") {
+        stage("Deploy") {
             steps {
-                script{
+                script {
                     withPythonEnv('python3') {
                         sh """
                             echo "validate if docker-compose is installed"
@@ -86,26 +86,35 @@ pipeline {
                             echo "running ${PRODUCT} application on local container"
                             docker compose up -d
                         """
+                    }
+                }
+            }
+        }
 
+        stage("E2E Test") {
+            steps {
+                script {
+                    withPythonEnv('python3') {
                         def max_retries = 5
                         def retry_delay = 10
                         def retries = 0
                         def success = false
 
                         while (retries < max_retries && !success) {
-                            if (sh(script: "curl -f http://localhost:5001/health", returnStatus: true) == 0){
-                                success = true
-                                echo "Backend health check succeeded!"
-                            }
-                            else{
-                                retries++
-                                echo "===========================here============================="
-
-                                echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
-                                sleep ${retry_delay}
-                                echo after sleep
-
-                                if (retries == max_retries) {
+                            try {
+                                    def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' http://backend:5001/health", returnStdout: true).trim()
+                                if (status == '200'){
+                                        success = true
+                                    echo "Backend health check succeeded!"
+                                } else {
+                                    echo "Backend health check failed with status code: ${status}"
+                                }
+                            } catch (Exception e) {
+                                if (retries < max_retries) {
+                                    retries++
+                                    echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
+                                    sleep ${retry_delay}
+                                } else {
                                     echo "Health check failed ${retries} times. Marking as failed."
                                     error "Failed to test backend health after ${max_retries} attempts."
                                     exit 1

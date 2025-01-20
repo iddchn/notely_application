@@ -199,22 +199,22 @@ pipeline {
 
     }
 
-    //post {
-    //    always {
-    //        script {
-    //            sh """
-    //            echo "cleanup e2e test container"
-    //            echo "stopping ${PRODUCT} containers"
-    //            docker compose down
-    //            echo "deleting ${PRODUCT} images"
-    //            docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo -f
-    //            echo "deleting ${PRODUCT} volumes"
-    //            docker volume prune -f
-    //            """
-    //        }
-    //        emailext attachLog: true, body: '', recipientProviders: [developers()], subject: 'Build results', to: '${ADMIN_EMAIL}'
-    //    }
-    //}
+    post {
+        always {
+            script {
+                sh """
+                echo "cleanup e2e test container"
+                echo "stopping ${PRODUCT} containers"
+                docker compose down
+                echo "deleting ${PRODUCT} images"
+                docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo -f
+                echo "deleting ${PRODUCT} volumes"
+                docker volume prune -f
+                """
+            }
+            emailext attachLog: true, body: '', recipientProviders: [developers()], subject: 'Build results', to: '${ADMIN_EMAIL}'
+        }
+    }
 
 }
 

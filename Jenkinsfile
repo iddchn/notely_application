@@ -59,7 +59,7 @@ pipeline {
             steps {
                 sh """
                 echo "running docker build for ${PRODUCT} Dockerfile version ${env.LATEST_TAG ?: VERSION}"
-                docker build -t ${PRODUCT}_image:${env.LATEST_TAG ?: VERSION} .
+                docker build -t ${PRODUCT}_image:${env.LATEST_TAG ?: VERSION} -f flask-notely/Dockerfile .
                 echo "build image successful."
                 """
             }

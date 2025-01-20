@@ -150,6 +150,8 @@ pipeline {
                 docker compose down
                 echo "deleting ${PRODUCT} images"
                 docker rmi nginx flask mongo
+                echo "deleting ${PRODUCT} volumes"
+                docker volume prune -f
                 """
             }
             emailext attachLog: true, body: '', recipientProviders: [developers()], subject: 'Build results', to: '${ADMIN_EMAIL}'

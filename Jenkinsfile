@@ -175,7 +175,7 @@ pipeline {
                        echo "commit hash is: ${commit_hash}"
 
                        sh """
-                       fit config --global user.name ${GITHUB_USERNAME}
+                       git config --global user.name ${GITHUB_USERNAME}
                        git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
                        git push origin ${env.LATEST_TAG}
                        """
@@ -191,7 +191,7 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: '1', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                     sh """
                         echo "Login to aws ecr"
                         aws ecr get-login-password --region ${AWS_REGION} | \

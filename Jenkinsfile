@@ -5,7 +5,7 @@ pipeline {
         ECR_REPO="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely"
         AWS_REGION="ap-south-1"
         AWS_ACOUNT_ID="600627353694"
-        GIT_EMAIL="idancohen55@gmail.com"
+        ADMIN_EMAIL="idancohen55@gmail.com"
         PRODUCT="notely"
     }
 
@@ -34,7 +34,7 @@ pipeline {
                         branches: [[name: '*']],
                         userRemoteConfigs: [[
                                 credentialsId: 'GitHub_user_pass',
-                                url: ${gitRepoUrl}
+                                url: "${gitRepoUrl}"
                         ]]
                     ])
                 }

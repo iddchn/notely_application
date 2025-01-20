@@ -101,11 +101,11 @@ pipeline {
                                 retries++
                                 echo "===========================here============================="
 
-                                if (retries < max_retries) {
                                 echo "Attempt ${retries} failed. Retrying in ${retry_delay} seconds..."
                                 sleep ${retry_delay}
-                                }
-                                else {
+                                echo after sleep
+
+                                if (retries == max_retries) {
                                     echo "Health check failed ${retries} times. Marking as failed."
                                     error "Failed to test backend health after ${max_retries} attempts."
                                     exit 1
@@ -185,7 +185,7 @@ pipeline {
                 echo "stopping ${PRODUCT} containers"
                 docker compose down
                 echo "deleting ${PRODUCT} images"
-                docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo
+                docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image -f //TODO: add mongo image to delete list
                 echo "deleting ${PRODUCT} volumes"
                 docker volume prune -f
                 """

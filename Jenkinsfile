@@ -35,10 +35,22 @@ pipeline {
         stage("Unit Test") {
             steps {
                 sh """
-                echo "installing the relevant directories on the agent"
-                npm install
-                echo "running unit test"
-                npm test
+                    echo "validate if python is installed"
+                    if command -v python3 &> /dev/null; then
+                        echo "Python 3 is installed."
+                    else
+                        echo "Python 3 is NOT installed."
+                        echo "installing python requests package"
+                        apt-get install -y python3
+                    fi
+
+                    if command -v pytest &> /dev/null; then
+                        pytest
+                    else
+                        echo "installing pytest"
+                        pip3 install pytest
+                        pytest
+                    fi
                 """
             }
         }
@@ -69,17 +81,12 @@ pipeline {
                 docker-compose up -d
                 echo "creating container finished successfully"
 
-                echo "validate if python is installed"
-                if command -v python3 &> /dev/null; then
-                    echo "Python 3 is installed."
+                if command -v requests &> /dev/null; then
+                    echo "running e2e test"
                 else
-                    echo "Python 3 is NOT installed."
-                    echo "installing python requests package"
-                    apt-get install -y python3
+                    echo "installing requests package"
+                    pip3 install requests
                 fi
-                echo "installing requests package"
-                pip3 install requests
-                echo "running e2e test"
                 python3 e2e_test.py
                 echo "e2e test finished successfully"
                 """

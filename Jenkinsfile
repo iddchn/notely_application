@@ -165,18 +165,21 @@ pipeline {
                 }
             }
             steps {
-                script {
-                    def commit_hash = sh(
-                        script: "git rev-parse HEAD",
-                        returnStdout: true
-                    ).trim()
+                withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    script {
+                        def commit_hash = sh(
+                            script: "git rev-parse HEAD",
+                            returnStdout: true
+                        ).trim()
 
-                   echo "commit hash is: ${commit_hash}"
+                       echo "commit hash is: ${commit_hash}"
 
-                   sh """
-                   git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
-                   git push origin ${env.LATEST_TAG}
-                   """
+                       sh """
+                       fit config --global user.name ${GITHUB_USERNAME}
+                       git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
+                       git push origin ${env.LATEST_TAG}
+                       """
+                    }
                 }
             }
         }

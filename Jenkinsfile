@@ -44,7 +44,9 @@ pipeline {
                         apt-get install -y python3
                     fi
 
-                    pip3 install pytest
+                    python3 -m venv myenv
+                    source myenv/bin/activate
+                    pip install pytest
                     echo "running unit test"
                     pytest
                 """
@@ -77,9 +79,9 @@ pipeline {
                 docker-compose up -d
                 echo "creating container finished successfully"
 
-                pip3 install requests
+                pip install requests
                 echo "running e2e test"
-                python3 e2e_test.py
+                python e2e_test.py
                 echo "e2e test finished successfully"
                 """
             }

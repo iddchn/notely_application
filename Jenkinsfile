@@ -37,7 +37,7 @@ pipeline {
                 sh """
                     echo "validate if python is installed"
                     if command -v python3 &> /dev/null; then
-                        echo "Python 3 is installed."
+                        echo "Python3 installed."
                     else
                         echo "Python 3 is NOT installed."
                         echo "installing python requests package"
@@ -45,12 +45,12 @@ pipeline {
                     fi
 
                     if command -v pytest &> /dev/null; then
-                        pytest
+                        echo "running unit test"
                     else
                         echo "installing pytest"
                         pip3 install pytest
-                        pytest
                     fi
+                    pytest
                 """
             }
         }

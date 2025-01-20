@@ -96,9 +96,10 @@ pipeline {
                             try {
                                 sh """
                                     echo testing backend health
-                                    curl http://backend:5001/health
+                                    curl -f http://backend:5001/health
                                 """
                                 success = true
+                                echo "Backend health check succeeded!"
                             } catch (Exception e) {
                                 retries++
                                 if (retries < max_retries) {
@@ -106,8 +107,8 @@ pipeline {
                                     sleep ${retry_delay}
                                 }
                                 else {
-                                    echo "health check failed ${retries} times"
-                                    error "Failed to test backend health"
+                                    echo "Health check failed ${retries} times. Marking as failed."
+                                    error "Failed to test backend health after ${max_retries} attempts."
                                 }
                             }
                         }

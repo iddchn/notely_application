@@ -74,7 +74,6 @@ pipeline {
                 script {
                     withPythonEnv('python3') {
                         sh """
-                            pwd
                             echo "validate if docker-compose is installed"
                             if command -v docker-compose &> /dev/null; then
                                 echo "docker-compose is installed."
@@ -84,7 +83,6 @@ pipeline {
                                 apt-get install docker-compose-plugin
                                 echo "docker compose installed successfully"
                             fi
-                            ls flask-notely/application/routers
                             echo "running ${PRODUCT} application on local container"
                             docker compose up -d
                         """
@@ -167,7 +165,7 @@ pipeline {
                        echo "commit hash is: ${commit_hash}"
 
                        sh """
-                       git tag ${env.LATEST_TAG} ${commit_hash}
+                       git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
                        git push origin ${env.LATEST_TAG}
                        """
                     }
@@ -209,7 +207,7 @@ pipeline {
     //            echo "stopping ${PRODUCT} containers"
     //            docker compose down
     //            echo "deleting ${PRODUCT} images"
-    //            docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo -f //TODO: add mongo image to delete list
+    //            docker rmi ${PRODUCT}_flask_image ${PRODUCT}_nginx_image mongo -f
     //            echo "deleting ${PRODUCT} volumes"
     //            docker volume prune -f
     //            """

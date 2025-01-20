@@ -74,13 +74,13 @@ pipeline {
                         if command -v docker-compose &> /dev/null; then
                             echo "docker-compose is installed."
                         else
-                            echo "docker-compose is NOT installed."
+                            echo "docker compose is NOT installed."
                             echo "installing docker-compose"
-                            apt-get install -y docker-compose
-                            echo "docker-compose installed successfully"
+                            apt-get install docker-compose-plugin
+                            echo "docker compose installed successfully"
                         fi
                         echo "running ${PRODUCT} application on local container"
-                        docker-compose up -d
+                        docker compose up -d
                         echo "creating container finished successfully"
 
                         echo "running e2e test"
@@ -146,7 +146,7 @@ pipeline {
                 sh """
                 echo "cleanup e2e test container"
                 echo "stopping ${PRODUCT} containers"
-                docker-compose down
+                docker compose down
                 echo "deleting ${PRODUCT} images"
                 docker rmi nginx flask mongo
                 """

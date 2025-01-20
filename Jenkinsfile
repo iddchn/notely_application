@@ -34,24 +34,24 @@ pipeline {
 
         stage("Unit Test") {
             steps {
-                sh """
-                    echo "validate if python is installed"
-                    if command -v python3 &> /dev/null; then
-                        echo "Python3 installed."
-                    else
-                        echo "Python 3 is NOT installed."
-                        echo "installing python requests package"
-                        apt-get update
-                        apt-get install -y python3
-                        apt-get install python3-venv
-                    fi
+                withPythonEnv('python3') {
+                    sh """
+                        echo "validate if python is installed"
+                        if command -v python3 &> /dev/null; then
+                            echo "Python3 installed."
+                        else
+                            echo "Python 3 is NOT installed."
+                            echo "installing python requests package"
+                            apt-get update
+                            apt-get install -y python3
+                            apt-get install python3-venv
+                        fi
 
-                    python3 -m venv myenv
-                    source myenv/bin/activate
-                    pip install pytest
-                    echo "running unit test"
-                    pytest
-                """
+                        pip3 install pytest
+                        echo "running unit test"
+                        pytest
+                    """
+                }
             }
         }
 

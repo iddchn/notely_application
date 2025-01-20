@@ -84,6 +84,7 @@ pipeline {
                         echo "creating container finished successfully"
 
                         echo "running e2e test"
+                        pip install requests
                         python flask-notely/testing_e2e.py
                         echo "e2e test finished successfully"
                     """

@@ -93,10 +93,11 @@ pipeline {
                         def success = false
 
                         while (retries < max_retries && !success) {
-                            if (sh(script: "curl -f http://backend:5001/health", returnStatus: true) == 0){
+                            if (sh(script: "curl -f http://backend:5001/health", returnStatus: 200) == 0){
                                 success = true
                                 echo "Backend health check succeeded!"
-                            }eles{
+                            }
+                            else{
                                 retries++
 
                                 if (retries < max_retries) {

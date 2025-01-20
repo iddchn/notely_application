@@ -41,7 +41,9 @@ pipeline {
                     else
                         echo "Python 3 is NOT installed."
                         echo "installing python requests package"
+                        apt-get update
                         apt-get install -y python3
+                        apt-get install python3-venv
                     fi
 
                     python3 -m venv myenv
@@ -72,7 +74,7 @@ pipeline {
                 else
                     echo "docker-compose is NOT installed."
                     echo "installing docker-compose"
-                    apt install -y docker-compose
+                    apt-get install -y docker-compose
                     echo "docker-compose installed successfully"
                 fi
                 echo "running ${PRODUCT} application on local container"

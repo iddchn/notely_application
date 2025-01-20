@@ -22,7 +22,6 @@ COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*
 
 COPY ./application ./application
-COPY ./migrations ./migrations
 COPY __init__.py .
 COPY config.py .
 COPY setup_db.py .

@@ -74,6 +74,7 @@ pipeline {
                 script {
                     withPythonEnv('python3') {
                         sh """
+                            pwd
                             echo "validate if docker-compose is installed"
                             if command -v docker-compose &> /dev/null; then
                                 echo "docker-compose is installed."
@@ -83,6 +84,7 @@ pipeline {
                                 apt-get install docker-compose-plugin
                                 echo "docker compose installed successfully"
                             fi
+                            ls flask-notely/application/routers
                             echo "running ${PRODUCT} application on local container"
                             docker compose up -d
                         """
@@ -155,18 +157,20 @@ pipeline {
                 }
             }
             steps {
-                script {
+                withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {}
+                    script {
                     def commit_hash = sh(
-                        script: "git rev-parse HEAD",
-                        returnStdout: true
-                    ).trim()
+                            script: "git rev-parse HEAD",
+                            returnStdout: true
+                        ).trim()
 
-                   echo "commit hash is: ${commit_hash}"
+                       echo "commit hash is: ${commit_hash}"
 
-                   sh """
-                   git tag ${env.LATEST_TAG} ${commit_hash}
-                   git push origin ${env.LATEST_TAG}
-                   """
+                       sh """
+                       git tag ${env.LATEST_TAG} ${commit_hash}
+                       git push origin ${env.LATEST_TAG}
+                       """
+                    }
                 }
             }
         }

@@ -91,12 +91,12 @@ pipeline {
                                 break
                             else
                                 echo "Backend is not ready yet. Retrying in ${RETRY_DELAY} seconds..."
-                                sleep \$RETRY_DELAY
-                                RETRIES=\$((RETRIES+1))
+                                sleep ${RETRY_DELAY}
+                                RETRIES++
                             fi
                         done
 
-                        if [ \$RETRIES -eq \$MAX_RETRIES ]; then
+                        if [ ${RETRIES} -eq ${MAX_RETRIES} ]; then
                             echo "Backend failed to start within the timeout period."
                             exit 1
                         fi

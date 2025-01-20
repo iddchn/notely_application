@@ -94,7 +94,7 @@ pipeline {
         stage("Deploment Health Check") {
             steps {
                 script {
-                    sleap 10
+                    sleep 10
 
                     def max_retries = 5
                     def retry_delay = 10

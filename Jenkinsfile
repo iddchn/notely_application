@@ -44,12 +44,8 @@ pipeline {
                         apt-get install -y python3
                     fi
 
-                    if python3 -c "import pytest" &> /dev/null; || true then
-                        echo "running unit test"
-                    else
-                        echo "installing pytest"
-                        pip3 install pytest
-                    fi
+                    pip3 install pytest
+                    echo "running unit test"
                     pytest
                 """
             }
@@ -81,12 +77,8 @@ pipeline {
                 docker-compose up -d
                 echo "creating container finished successfully"
 
-                if python3 -c "import requests" &> /dev/null; then
-                    echo "running e2e test"
-                else
-                    echo "installing requests package"
-                    pip3 install requests
-                fi
+                pip3 install requests
+                echo "running e2e test"
                 python3 e2e_test.py
                 echo "e2e test finished successfully"
                 """

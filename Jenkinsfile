@@ -43,8 +43,8 @@ pipeline {
                         echo "installing python requests package"
                         apt-get update
                         apt-get install -y python3
+                        apt-get install python3-venv
                     fi
-                    apt-get install python3-venv
 
                     python3 -m venv myenv
                     source myenv/bin/activate

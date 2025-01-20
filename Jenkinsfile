@@ -28,19 +28,8 @@ pipeline {
 
         stage("Checkout") {
             steps {
-                script {
-                    deleteDir()
-                    env.GIT_REPO_URL = scm.getUserRemoteConfigs()[0].getUrl()
-                    checkout ([
-                        $class: 'GitSCM',
-                        branches: [[name: '**']],
-                        userRemoteConfigs: [[
-                                credentialsId: 'GitHub_user_pass',
-                                url: "${env.GIT_REPO_URL}"
-                        ]]
-                    ])
-                    echo "${env.GIT_REPO_URL}"
-                }
+                deleteDir()
+                checkout scm
             }
         }
 

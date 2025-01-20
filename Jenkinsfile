@@ -47,7 +47,7 @@ pipeline {
                         python3 -m venv venv
                         . venv/bin/activate
                         pip install --upgrade pip
-                        pip install -r requirements.txt
+                        pip install -r flask-notely/requirements.txt
                         echo "running unit test"
                         pytest
                     """

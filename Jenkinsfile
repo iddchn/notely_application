@@ -44,11 +44,11 @@ pipeline {
                         apt-get install -y python3
                     fi
 
-                    if python3 -c "import pytest" &> /dev/null; then
+                    if python3 -c "import pytest" &> /dev/null; then || true
                         echo "running unit test"
                     else
                         echo "installing pytest"
-                        pip3 install pytest || true
+                        pip3 install pytest
                     fi
                     pytest
                 """

@@ -45,6 +45,22 @@ pipeline {
             }
         }
 
+        stage("Get release last tag") {
+            when {
+                expression {
+                    ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
+                }
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                    script {
+                        env.LATEST_TAG = createNewTagVersion(VERSION)
+                        sh "echo 'latest tag: ${env.LATEST_TAG}'"
+                    }
+                }
+            }
+        }
+
         stage("Build") {
             steps {
                 sh """
@@ -138,22 +154,6 @@ pipeline {
             }
         }
 
-        //stage("Get release last tag") {
-        //    when {
-        //        expression {
-        //            ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
-        //        }
-        //    }
-        //    steps {
-        //        withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-        //            script {
-        //                env.LATEST_TAG = createNewTagVersion(VERSION)
-        //                sh "echo 'latest tag: ${env.LATEST_TAG}'"
-        //            }
-        //        }
-        //    }
-        //}
-
         stage("Tag Commit Tag") {
             when {
                 expression {
@@ -168,9 +168,6 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                       env.LATEST_TAG = createNewTagVersion(VERSION)
-
-                       echo "latest tag: ${env.LATEST_TAG}"
                        echo "commit hash is: ${commit_hash}"
                        sh """
                            git config --global user.name ${GITHUB_USERNAME}
@@ -255,7 +252,7 @@ def createNewTagVersion(version) {
         } else {
             echo "there is no tag"
             def parts = version.tokenize('.')
-            parts << "1"
+            parts << "0"
             def tag = parts.join('.')
             echo "now the tag is: ${tag}"
             return tag

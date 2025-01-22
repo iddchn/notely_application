@@ -9,6 +9,8 @@ pipeline {
         ADMIN_EMAIL="idancohen55@gmail.com"
         PRODUCT="notely"
         GIT_REPO="github.com/iddchn/notely_application.git"
+        GIT_CREDENTIALS_ID = "GitHub_user_pass"
+        AWS_CREDENTIALS_ID = "AWS_ACCESS_KEY_ID"
     }
 
     stages {
@@ -159,20 +161,18 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
                     script {
                         def commit_hash = sh(
                             script: "git rev-parse HEAD",
                             returnStdout: true
                         ).trim()
 
+                       env.LATEST_TAG = createNewTagVersion(VERSION)
 
+                       echo "latest tag: ${env.LATEST_TAG}"
+                       echo "commit hash is: ${commit_hash}"
                        sh """
-                           env.LATEST_TAG = createNewTagVersion(VERSION)
-                           sh "echo 'latest tag: ${env.LATEST_TAG}'"
-
-                           echo "commit hash is: ${commit_hash}"
-
                            git config --global user.name ${GITHUB_USERNAME}
                            git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
                            git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO} ${env.LATEST_TAG}
@@ -189,7 +189,7 @@ pipeline {
                 }
             }
             steps {
-                withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
+                withCredentials([aws(accessKeyVariable: AWS_CREDENTIALS_ID, credentialsId: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY')]) {
                     sh """
                         echo "Login to aws ecr"
                         aws ecr get-login-password --region ${AWS_REGION} | \
@@ -231,14 +231,20 @@ pipeline {
 
 def createNewTagVersion(version) {
     try {
-        sh """
+        sh '''
+            if [ "$(git tag)" ]; then
+                echo "Deleting local tags..."
+                git tag -d $(git tag) || echo 'No tags to delete'
             git fetch --tags
-        """
+        '''
+
         def lastTag = sh(
-            script: 'git describe --tags --abbrev=0',
+            script: 'git describe --tags --abbrev=0 || echo ""',
             returnStdout: true
         ).trim()
+
         echo "lastTag: ${lastTag}"
+
         if (lastTag) {
             echo "there is a tag: ${lastTag}"
             def versionParts = lastTag.tokenize('.')
@@ -246,14 +252,16 @@ def createNewTagVersion(version) {
             def newTag = versionParts.join('.')
             echo "the new tag is: ${newTag}"
             return newTag
+        } else {
+            echo "there is no tag"
+            def parts = version.tokenize('.')
+            parts << "1"
+            def tag = parts.join('.')
+            echo "now the tag is: ${tag}"
+            return tag
         }
     } catch (Exception e) {
         echo "there is no tag ${e.message}"
-        def parts = version.tokenize('.')
-        parts << "1"
-        def tag = parts.join('.')
-        echo "now the tag is: ${tag}"
-        return tag
     }
 }
 

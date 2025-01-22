@@ -236,7 +236,7 @@ def createNewTagVersion(version) {
         '''
 
         withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
-            sh 'git fetch --tags'
+            sh 'git fetch --tags https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO}'
         }
 
         def lastTag = sh(
@@ -262,7 +262,12 @@ def createNewTagVersion(version) {
             return tag
         }
     } catch (Exception e) {
-        echo "there is no tag ${e.message}"
+        echo "there is no tags in the git create first tag"
+            def parts = version.tokenize('.')
+            parts << "0"
+            def tag = parts.join('.')
+            echo "now the tag is: ${tag}"
+            return tag
     }
 }
 

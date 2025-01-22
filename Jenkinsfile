@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment{
         def VERSION=readFile('version.txt').trim()
-        ECR_REPO_FRONT="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/emulator-front"
+        ECR_REPO_FRONT="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely-front"
         ECR_REPO_BACK="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely-back"
         AWS_REGION="ap-south-1"
         AWS_ACOUNT_ID="600627353694"

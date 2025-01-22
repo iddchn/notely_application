@@ -232,8 +232,8 @@ def createNewTagVersion(version) {
             if [ "$(git tag)" ]; then
                 echo "Deleting local tags..."
                 git tag -d $(git tag) || echo 'No tags to delete'
+                git fetch --tags
             fi
-            git fetch --tags
         '''
 
         def lastTag = sh(
@@ -251,7 +251,7 @@ def createNewTagVersion(version) {
             echo "the new tag is: ${newTag}"
             return newTag
         } else {
-            echo "there is no tag"
+            echo "there is no tags in the git create first tag"
             def parts = version.tokenize('.')
             parts << "0"
             def tag = parts.join('.')

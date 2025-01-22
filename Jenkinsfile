@@ -193,8 +193,8 @@ pipeline {
 
                 sh """
                     echo "tagging ${PRODUCT} images"
-                    docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
-                    docker tag ${PRODUCT}_back_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                    docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO_BACK}:${env.LATEST_TAG ?: VERSION}
+                    docker tag ${PRODUCT}_nginx_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO_FRONT}:${env.LATEST_TAG ?: VERSION}
                     echo "pushing image to AES ECR"
                     docker push ${ECR_REPO_BACK}:${env.LATEST_TAG ?: VERSION}
                     docker push ${ECR_REPO_FRONT}:${env.LATEST_TAG ?: VERSION}

@@ -235,6 +235,10 @@ def createNewTagVersion(version) {
             fi
         '''
 
+        withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+            sh 'git fetch --tags'
+        }
+
         def lastTag = sh(
             script: 'git describe --tags --abbrev=0 || echo ""',
             returnStdout: true

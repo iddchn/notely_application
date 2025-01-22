@@ -232,6 +232,7 @@ def createNewTagVersion(version) {
             if [ "$(git tag)" ]; then
                 echo "Deleting local tags..."
                 git tag -d $(git tag) || echo 'No tags to delete'
+            fi
             git fetch --tags
         '''
 

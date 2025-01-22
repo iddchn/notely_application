@@ -136,19 +136,21 @@ pipeline {
             }
         }
 
-        stage("Get release last tag") {
-            when {
-                expression {
-                    ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
-                }
-            }
-            steps{
-                script{
-                    env.LATEST_TAG = createNewTagVersion(VERSION)
-                    sh "echo 'latest tag: ${env.LATEST_TAG}'"
-                }
-            }
-        }
+        //stage("Get release last tag") {
+        //    when {
+        //        expression {
+        //            ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
+        //        }
+        //    }
+        //    steps {
+        //        withCredentials([usernamePassword(credentialsId: 'GitHub_user_pass', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+        //            script {
+        //                env.LATEST_TAG = createNewTagVersion(VERSION)
+        //                sh "echo 'latest tag: ${env.LATEST_TAG}'"
+        //            }
+        //        }
+        //    }
+        //}
 
         stage("Tag Commit Tag") {
             when {
@@ -164,12 +166,16 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                       echo "commit hash is: ${commit_hash}"
 
                        sh """
-                       git config --global user.name ${GITHUB_USERNAME}
-                       git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
-                       git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO} ${env.LATEST_TAG}
+                           env.LATEST_TAG = createNewTagVersion(VERSION)
+                           sh "echo 'latest tag: ${env.LATEST_TAG}'"
+
+                           echo "commit hash is: ${commit_hash}"
+
+                           git config --global user.name ${GITHUB_USERNAME}
+                           git tag -a ${env.LATEST_TAG} -m "new tag for version ${env.LATEST_TAG}"
+                           git push https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO} ${env.LATEST_TAG}
                        """
                     }
                 }
@@ -225,7 +231,9 @@ pipeline {
 
 def createNewTagVersion(version) {
     try {
-        sh "git fetch --tags"
+        sh """
+            git fetch --tags
+        """
         def lastTag = sh(
             script: 'git describe --tags --abbrev=0',
             returnStdout: true

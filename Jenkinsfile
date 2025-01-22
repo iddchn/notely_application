@@ -2,7 +2,8 @@ pipeline {
     agent any
     environment{
         def VERSION=readFile('version.txt').trim()
-        ECR_REPO="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely"
+        ECR_REPO_FRONT="600627353694.dkr.ecr.ap-south-1.amazonaws.com/dan/emulator-front"
+        ECR_REPO_BACK="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely-back"
         AWS_REGION="ap-south-1"
         AWS_ACOUNT_ID="600627353694"
         ADMIN_EMAIL="idancohen55@gmail.com"
@@ -11,20 +12,6 @@ pipeline {
     }
 
     stages {
-
-        stage("Get release last tag and branch mane") {
-            when {
-                expression {
-                    ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
-                }
-            }
-            steps{
-                script{
-                    env.LATEST_TAG = createNewTagVersion(VERSION)
-                    sh "echo 'latest tag: ${env.LATEST_TAG}'"
-                }
-            }
-        }
 
         stage("Checkout") {
             steps {
@@ -149,7 +136,21 @@ pipeline {
             }
         }
 
-        stage("Tag Commit") {
+        stage("Get release last tag") {
+            when {
+                expression {
+                    ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
+                }
+            }
+            steps{
+                script{
+                    env.LATEST_TAG = createNewTagVersion(VERSION)
+                    sh "echo 'latest tag: ${env.LATEST_TAG}'"
+                }
+            }
+        }
+
+        stage("Tag Commit Tag") {
             when {
                 expression {
                    ['main'].any {branch -> GIT_BRANCH?.contains(branch)}
@@ -191,10 +192,12 @@ pipeline {
                 }
 
                 sh """
-                    echo "creating tag for docker ${PRODUCT}_image"
+                    echo "tagging ${PRODUCT} images"
                     docker tag ${PRODUCT}_flask_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                    docker tag ${PRODUCT}_back_image:${env.LATEST_TAG ?: VERSION} ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
                     echo "pushing image to AES ECR"
-                    docker push ${ECR_REPO}:${env.LATEST_TAG ?: VERSION}
+                    docker push ${ECR_REPO_BACK}:${env.LATEST_TAG ?: VERSION}
+                    docker push ${ECR_REPO_FRONT}:${env.LATEST_TAG ?: VERSION}
                 """
             }
         }

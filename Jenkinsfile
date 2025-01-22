@@ -232,12 +232,11 @@ def createNewTagVersion(version) {
             if [ "$(git tag)" ]; then
                 echo "Deleting local tags..."
                 git tag -d $(git tag) || echo 'No tags to delete'
-                git fetch --tags
             fi
         '''
 
         def lastTag = sh(
-            script: 'git describe --tags --abbrev=0 || fales',
+            script: 'git describe --tags --abbrev=0 || echo ""',
             returnStdout: true
         ).trim()
 

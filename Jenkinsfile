@@ -237,7 +237,7 @@ def createNewTagVersion(version) {
         '''
 
         def lastTag = sh(
-            script: 'git describe --tags --abbrev=0',
+            script: 'git describe --tags --abbrev=0 || echo "no tags"',
             returnStdout: true
         ).trim()
 

@@ -225,6 +225,7 @@ pipeline {
 
 def createNewTagVersion(version) {
     try {
+        sh "git fetch --tags"
         def lastTag = sh(
             script: 'git describe --tags --abbrev=0',
             returnStdout: true

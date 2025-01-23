@@ -3,7 +3,7 @@ from werkzeug.security import generate_password_hash
 import os
 
 def setup_database():
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/flask-notely")
+    mongo_uri = os.getenv("MONGO_URI", "mongodb://app-notely-mongodb-headless.notely.svc.cluster.local:27017/flask-notely")
     client = MongoClient(mongo_uri)
     db = client.get_database("flask-notely")
 

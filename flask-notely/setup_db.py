@@ -1,9 +1,43 @@
+from encodings.base64_codec import base64_decode
+
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 import os
+import boto3
+from botocore.exceptions import ClientError
+
+# Use this code snippet in your app.
+# If you need more information about configurations
+# or implementing the sample code, visit the AWS docs:
+# https://aws.amazon.com/developer/language/python/
+def get_secret():
+
+    secret_name = os.getenv("MONGO_SECRET_NAME")
+    region_name = os.getenv("AWS_REGION")
+
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        # For a list of exceptions thrown, see
+        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+        raise e
+
+    secret = get_secret_value_response['SecretString']
+
+    return base64_decode(secret)
+
 
 def setup_database():
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://app-notely-mongodb-headless.notely.svc.cluster.local:27017/flask-notely")
+    mongo_uri = get_secret()
     client = MongoClient(mongo_uri)
     db = client.get_database("flask-notely")
 

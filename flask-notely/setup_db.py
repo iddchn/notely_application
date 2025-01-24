@@ -14,24 +14,26 @@ def get_secret():
 
     secret_name = os.getenv("MONGO_SECRET_NAME")
     region_name = os.getenv("AWS_REGION")
-
+    print(f"Getting secret name {secret_name} from region {region_name}")
     # Create a Secrets Manager client
     session = boto3.session.Session()
+    print(f"Session: {session}")
     client = session.client(
         service_name='secretsmanager',
         region_name=region_name
     )
-
+    print(f"Client: {client}")
     try:
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
     except ClientError as e:
+        print("we are in error")
         # For a list of exceptions thrown, see
         # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
         raise e
-
     secret = get_secret_value_response['SecretString']
+    print(f"Secret: {base64_decode(secret)}")
 
     return base64_decode(secret)
 

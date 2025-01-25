@@ -2,7 +2,7 @@ Flask==3.1.0
 Flask-SQLAlchemy==3.1.1
 Flask-Migrate==3.1.0
 Flask-Cors==3.0.10
-pymongo==3.13.0
+pymongo<3.11
 prometheus-flask-exporter==0.23.1
 prometheus_flask_exporter==0.23.1
 werkzeug==3.1.3

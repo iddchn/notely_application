@@ -27,8 +27,10 @@ def get_secret():
     except ClientError as e:
         print("we are in error")
         raise e
-    secret = get_secret_value_response['SecretString']['mongodb_uri']
+    secret = dict(get_secret_value_response['SecretString'])['mongo_uri']
     print(f"Secret: {base64_decode(secret)}")
+
+
     return base64_decode(secret)
 
 

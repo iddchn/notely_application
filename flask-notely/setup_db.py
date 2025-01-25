@@ -23,9 +23,8 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
-        print(f"Response get_secret_value_response: {get_secret_value_response}")
     except ClientError as e:
-        print("we are in error")
+        print("Encountered an error while fetching secret")
         raise e
     secret = dict(get_secret_value_response['SecretString'])['mongo_uri']
     print(f"Secret: {base64_decode(secret)}")

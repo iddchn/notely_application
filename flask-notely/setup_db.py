@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash
 import os
 import boto3
 from botocore.exceptions import ClientError
+import json
 
 def get_secret():
 
@@ -26,10 +27,9 @@ def get_secret():
     except ClientError as e:
         print("Encountered an error while fetching secret")
         raise e
-    secret = dict(get_secret_value_response['SecretString'])['mongo_uri']
+    secret_dict = json.loads(get_secret_value_response['SecretString'])
+    secret = secret_dict['mongo_uri']
     print(f"Secret: {base64_decode(secret)}")
-
-
     return base64_decode(secret)
 
 

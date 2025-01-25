@@ -26,12 +26,9 @@ def get_secret():
         print(f"Response get_secret_value_response: {get_secret_value_response}")
     except ClientError as e:
         print("we are in error")
-        # For a list of exceptions thrown, see
-        # https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
         raise e
-    secret = get_secret_value_response['SecretString']
+    secret = get_secret_value_response['SecretString']['mongodb_uri']
     print(f"Secret: {base64_decode(secret)}")
-
     return base64_decode(secret)
 
 

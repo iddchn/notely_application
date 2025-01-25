@@ -6,10 +6,6 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 
-# Use this code snippet in your app.
-# If you need more information about configurations
-# or implementing the sample code, visit the AWS docs:
-# https://aws.amazon.com/developer/language/python/
 def get_secret():
 
     secret_name = os.getenv("MONGO_SECRET_NAME")
@@ -27,6 +23,7 @@ def get_secret():
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
         )
+        print(f"Response get_secret_value_response: {get_secret_value_response}")
     except ClientError as e:
         print("we are in error")
         # For a list of exceptions thrown, see

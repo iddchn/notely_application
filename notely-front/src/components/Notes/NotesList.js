@@ -35,7 +35,6 @@ function NotesList() {
   const handleDeleteNote = async (noteId) => {
     try {
       await api.delete(`/notes/${noteId}`);
-      alert("Note deleted successfully");
       fetchNotes();
     } catch (error) {
       console.error("Error deleting note:", error);

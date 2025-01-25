@@ -12,7 +12,6 @@ function Signup() {
     e.preventDefault();
     try {
       await api.post("/user/signup", { name, email, password });
-      alert("Signup successful");
       navigate("/");
     } catch (error) {
       alert("Signup failed");

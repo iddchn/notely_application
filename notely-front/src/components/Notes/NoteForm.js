@@ -23,17 +23,14 @@ function NoteForm({ note, onSubmit }) {
         // Editing existing note
         console.log("Updating note:", note._id);
         await api.put(`/notes/${note._id}`, payload);
-        alert("Note updated successfully");
       } else {
         // Creating a new note
         console.log("Creating new note");
         await api.post("/notes", payload);
-        alert("Note created successfully");
       }
       onSubmit(); // Callback to refresh the notes list
     } catch (error) {
       console.error("Error saving note:", error);
-      alert("Failed to save note");
     }
   };
 

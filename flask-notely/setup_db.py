@@ -7,18 +7,13 @@ from botocore.exceptions import ClientError
 import json
 
 def get_secret():
-
-    secret_name = os.getenv("MONGO_SECRET_NAME", "idan_notely_secrets")
+    secret_name = os.getenv("MONGO_SECRET_NAME")
     region_name = os.getenv("AWS_REGION")
-    print(f"Getting secret name {secret_name} from region {region_name}")
-    # Create a Secrets Manager client
     session = boto3.session.Session()
-    print(f"Session: {session}")
     client = session.client(
         service_name='secretsmanager',
         region_name=region_name
     )
-    print(f"Client: {client}")
     try:
         get_secret_value_response = client.get_secret_value(
             SecretId=secret_name
@@ -28,8 +23,6 @@ def get_secret():
         raise e
     secret_dict = json.loads(get_secret_value_response['SecretString'])
     secret = secret_dict['mongodb_uri']
-    if isinstance(secret, str):
-        data = secret.encode('utf-8')  # Convert string to bytes
     return base64.b64decode(secret).decode('utf-8')
 
 def setup_database():
@@ -63,7 +56,3 @@ def initialize_first_user(db):
         print("First user created: admin@example.com with password admin123")
     else:
         print("Users already exist. No default user created.")
-
-if __name__ == "__main__":
-    setup_database()
-    print("Database setup completed.")

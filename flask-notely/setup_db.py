@@ -28,6 +28,7 @@ def get_secret():
         print("Encountered an error while fetching secret")
         raise e
     secret_dict = json.loads(get_secret_value_response['SecretString'])
+    print(f"Secret dict: {secret_dict}")
     secret = secret_dict['mongo_uri']
     print(f"Secret: {base64_decode(secret)}")
     return base64_decode(secret)

@@ -211,7 +211,7 @@ pipeline {
                     // Trigger another pipeline
                     build job: 'notely_update_version',
                           parameters: [
-                              string(name: 'NEW_APP_VERSION', value: 'env.LATEST_TAG')
+                              string(name: 'NEW_APP_VERSION', value: env.LATEST_TAG)
                           ],
                           propagate: false
                 }

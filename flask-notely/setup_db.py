@@ -1,5 +1,4 @@
-from encodings.base64_codec import base64_decode
-
+import base64
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash
 import os
@@ -9,7 +8,7 @@ import json
 
 def get_secret():
 
-    secret_name = os.getenv("MONGO_SECRET_NAME")
+    secret_name = os.getenv("MONGO_SECRET_NAME", "idan_notely_secrets")
     region_name = os.getenv("AWS_REGION")
     print(f"Getting secret name {secret_name} from region {region_name}")
     # Create a Secrets Manager client
@@ -28,11 +27,10 @@ def get_secret():
         print("Encountered an error while fetching secret")
         raise e
     secret_dict = json.loads(get_secret_value_response['SecretString'])
-    print(f"Secret dict: {secret_dict}")
-    secret = secret_dict['mongo_uri']
-    print(f"Secret: {base64_decode(secret)}")
-    return base64_decode(secret)
-
+    secret = secret_dict['mongodb_uri']
+    if isinstance(secret, str):
+        data = secret.encode('utf-8')  # Convert string to bytes
+    return base64.b64decode(secret).decode('utf-8')
 
 def setup_database():
     mongo_uri = get_secret()
@@ -65,3 +63,7 @@ def initialize_first_user(db):
         print("First user created: admin@example.com with password admin123")
     else:
         print("Users already exist. No default user created.")
+
+if __name__ == "__main__":
+    setup_database()
+    print("Database setup completed.")

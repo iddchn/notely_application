@@ -44,7 +44,7 @@ def create_app():
     CORS(app)
 
     # Configure MongoDB
-    app.config.from_object(Config)
+    # app.config.from_object(Config)
     global mongo_db
     mongo_uri = get_secret()
     client = MongoClient(mongo_uri)

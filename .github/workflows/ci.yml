@@ -65,8 +65,10 @@ jobs:
           docker build -t "${PRODUCT}_flask_image:${TAG}" flask-notely
           docker build -t "${PRODUCT}_nginx_image:${TAG}" notely-front
 
+      # Only backend + mongo: the nginx image hardcodes the in-cluster DNS
+      # resolver and cannot run outside Kubernetes; CI only tests the backend.
       - name: Run app with docker compose
-        run: docker compose up -d
+        run: docker compose up -d backend mongo
 
       - name: Health check
         run: |

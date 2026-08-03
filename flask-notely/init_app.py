@@ -46,7 +46,7 @@ def create_app():
     # Configure MongoDB
     # app.config.from_object(Config)
     global mongo_db
-    mongo_uri = get_secret()
+    mongo_uri = os.getenv("MONGO_URI") or get_secret()
     client = MongoClient(mongo_uri)
     mongo_db = client.get_database("flask-notely")
 

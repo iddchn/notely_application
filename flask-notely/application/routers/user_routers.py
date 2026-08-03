@@ -1,8 +1,37 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from init_app import mongo_db
+from application.entra_auth import validate_entra_token
 
 user_blueprint = Blueprint("User", __name__)
+
+@user_blueprint.route("/sso-login", methods=["POST"])
+def sso_login():
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return jsonify({"message": "Missing bearer token"}), 401
+    token = auth_header.split(" ", 1)[1]
+
+    try:
+        claims = validate_entra_token(token)
+    except RuntimeError as e:
+        return jsonify({"message": str(e)}), 500
+    except Exception:
+        return jsonify({"message": "Invalid token"}), 401
+
+    email = claims.get("email") or claims.get("preferred_username")
+    if not email:
+        return jsonify({"message": "Token has no email claim"}), 401
+
+    user = mongo_db.users.find_one({"email": email})
+    if not user:
+        mongo_db.users.insert_one({
+            "name": claims.get("name", email),
+            "email": email,
+            "auth": "entra",
+        })
+        user = mongo_db.users.find_one({"email": email})
+    return jsonify({"message": "Login successful", "user_id": str(user["_id"])}), 200
 
 @user_blueprint.route("/signup", methods=["POST"])
 def signup():

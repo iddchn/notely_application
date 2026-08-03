@@ -2,10 +2,10 @@ pipeline {
     agent any
     environment{
         def VERSION=readFile('version.txt').trim()
-        ECR_REPO_FRONT="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely-front"
-        ECR_REPO_BACK="600627353694.dkr.ecr.ap-south-1.amazonaws.com/idan/notely-back"
-        AWS_REGION="ap-south-1"
-        AWS_ACOUNT_ID="600627353694"
+        ECR_REPO_FRONT="533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-front"
+        ECR_REPO_BACK="533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-back"
+        AWS_REGION="us-east-1"
+        AWS_ACOUNT_ID="533813050020"
         ADMIN_EMAIL="idancohen55@gmail.com"
         PRODUCT="notely"
         GIT_REPO="github.com/iddchn/notely_application.git"

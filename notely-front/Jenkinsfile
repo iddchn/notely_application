@@ -1,0 +1,73 @@
+pipeline {
+	agent any
+
+	parameters {
+		string(name: 'NEW_APP_VERSION', description: 'new app version')
+	}
+
+	environment {
+		FILE_PATH = 'notely/notely-chart/Chart.yaml'
+		FILE = 'Chart.yaml'
+		COMMIT_MESSAGE = 'update chart version'
+		BRANCH_NAME = 'main'
+		GIT_CREDENTIALS_ID = 'GitHub_user_pass'
+		GIT_REPO= 'github.com/iddchn/notely-kubernetes.git'
+	}
+
+	stages {
+
+		stage('Checkout Code') {
+			steps {
+				deleteDir()
+				withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+					checkout([
+					$class: 'GitSCM',
+					branches: [[name: 'main']],
+					doGenerateSubmoduleConfigurations: false,
+					extensions: [],
+					userRemoteConfigs: [[
+							url: "https://${GITHUB_USERNAME}:${GITHUB_PASSWORD}@${GIT_REPO}"
+					]]
+				])
+				script {
+					// Check if the branch exists; if not, create it
+					sh '''
+					git fetch --all
+					git checkout main || git checkout -b main
+					'''
+				}
+			}
+			}
+		}
+
+		stage("modify chart version") {
+			steps {
+				script {
+					def chartFile = FILE_PATH
+					def newAppVersion = params.NEW_APP_VERSION
+					def chartContent = readFile(chartFile)
+					// Replace the appVersion using regex
+					def updatedContent = chartContent.replaceAll(/appVersion: ".*"/, "appVersion: \"${newAppVersion}\"")
+					// Write the updated content back to the file
+					writeFile file: chartFile, text: updatedContent
+					// Print the updated file to verify
+					sh "cat ${chartFile}"
+				}
+			}
+		}
+
+		stage('Push Changes to Git') {
+    steps {
+			withCredentials([usernamePassword(credentialsId: GIT_CREDENTIALS_ID, passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USERNAME')]) {
+				script {
+						sh "git add ."
+						sh "git commit -m '${env.COMMIT_MESSAGE} ${params.NEW_APP_VERSION}'"
+						sh "git push origin ${BRANCH_NAME}"
+					}
+				}
+    	}
+		}
+
+	}
+
+}

@@ -125,7 +125,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: iddchn/notely-kubernetes
-          token: ${{ secrets.KUBE_REPO_TOKEN }}
+          token: ${{ secrets.KubeRepoToken }}
           path: kube-repo
 
       - name: Bump chart appVersion

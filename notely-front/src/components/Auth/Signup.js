@@ -19,7 +19,7 @@ function Signup() {
   };
 
   return (
-    <div>
+    <div className="auth-card">
       <h2>Signup</h2>
       <form onSubmit={handleSignup}>
         <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />

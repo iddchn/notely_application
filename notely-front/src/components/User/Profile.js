@@ -18,7 +18,7 @@ function Profile() {
   };
 
   return (
-    <div>
+    <div className="auth-card">
       <h2>Update Profile</h2>
       <form onSubmit={handleUpdate}>
         <input type="text" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required />

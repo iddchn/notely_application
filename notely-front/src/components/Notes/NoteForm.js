@@ -14,18 +14,11 @@ function NoteForm({ note, onSubmit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting note form");
-
     const payload = { header, body, user_id: localStorage.getItem("userId") };
-    console.log("Payload:", payload);
     try {
       if (note) {
-        // Editing existing note
-        console.log("Updating note:", note._id);
         await api.put(`/notes/${note._id}`, payload);
       } else {
-        // Creating a new note
-        console.log("Creating new note");
         await api.post("/notes", payload);
       }
       onSubmit(); // Callback to refresh the notes list
@@ -35,7 +28,7 @@ function NoteForm({ note, onSubmit }) {
   };
 
   return (
-    <div>
+    <div className="note-form-card">
       <h2>{note ? "Edit Note" : "New Note"}</h2>
       <form onSubmit={handleSubmit}>
         <input

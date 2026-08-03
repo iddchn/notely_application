@@ -47,20 +47,27 @@ function NotesList() {
   };
 
   return (
-    <div>
-      <h2>Your Notes</h2>
-      <button onClick={handleCreateNote}>New Note</button>
+    <div className="notes-page">
+      <div className="notes-header">
+        <h2>Your Notes</h2>
+        <button onClick={handleCreateNote}>+ New Note</button>
+      </div>
       {showForm && (
         <NoteForm note={selectedNote} onSubmit={handleFormSubmit} />
       )}
       <div className="notes-container">
+        {notes.length === 0 && !showForm && (
+          <div className="empty-state">No notes yet — create your first one!</div>
+        )}
         {notes.map((note) => (
           <div key={note._id} className="note-card">
             <h3>{note.header}</h3>
             <p>{note.body}</p>
             <small>{new Date(note.created_at).toLocaleString()}</small>
-            <button onClick={() => handleEditNote(note)}>Edit</button>
-            <button onClick={() => handleDeleteNote(note._id)}>Delete</button>
+            <div className="note-actions">
+              <button className="btn-secondary" onClick={() => handleEditNote(note)}>Edit</button>
+              <button className="btn-danger" onClick={() => handleDeleteNote(note._id)}>Delete</button>
+            </div>
           </div>
         ))}
       </div>

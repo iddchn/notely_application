@@ -1,33 +1,42 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { isLoggedIn, logout } from "../auth";
 
 function NavigationPanel() {
+  const navigate = useNavigate();
+  // Re-render on every route change so the auth state is re-read after
+  // login/logout navigations.
+  useLocation();
+  const loggedIn = isLoggedIn();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <nav style={styles.nav}>
-      <Link to="/login" style={styles.link}>
-        Login
+    <nav className="navbar">
+      <Link to={loggedIn ? "/notes" : "/login"} className="navbar-brand">
+        📝 Notely
       </Link>
-      <Link to="/signup" style={styles.link}>
-        Signup
-      </Link>
+      <div className="navbar-links">
+        {loggedIn ? (
+          <>
+            <Link to="/notes" className="navbar-link">Notes</Link>
+            <Link to="/profile" className="navbar-link">Profile</Link>
+            <button type="button" className="btn btn-logout" onClick={handleLogout}>
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="navbar-link">Login</Link>
+            <Link to="/signup" className="navbar-link">Signup</Link>
+          </>
+        )}
+      </div>
     </nav>
   );
 }
-
-const styles = {
-  nav: {
-    display: "flex",
-    justifyContent: "center",
-    gap: "20px",
-    padding: "10px",
-    backgroundColor: "#f4f4f9",
-    borderBottom: "1px solid #ccc",
-  },
-  link: {
-    textDecoration: "none",
-    fontSize: "18px",
-    color: "#007bff",
-  },
-};
 
 export default NavigationPanel;

@@ -1,0 +1,144 @@
+name: notely CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: "533813050020"
+  ECR_REPO_BACK: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-back
+  ECR_REPO_FRONT: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-front
+  PRODUCT: notely
+
+permissions:
+  id-token: write   # OIDC token for assuming the AWS role
+  contents: write   # push release tags to this repo
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r flask-notely/requirements.txt
+          pytest
+
+      # Same versioning scheme as the Jenkins pipeline: take the latest git tag
+      # and bump the patch part; first release falls back to "<version.txt>.0".
+      - name: Compute version tag
+        id: version
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "${{ github.event_name }}" != "pull_request" ]; then
+            last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            if [ -n "$last_tag" ]; then
+              major_minor=${last_tag%.*}
+              patch=${last_tag##*.}
+              tag="${major_minor}.$((patch + 1))"
+            else
+              tag="$(cat version.txt).0"
+            fi
+          else
+            tag="$(cat version.txt)"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "version tag: $tag"
+
+      - name: Build images
+        run: |
+          docker build -t "${PRODUCT}_flask_image:${TAG}" flask-notely
+          docker build -t "${PRODUCT}_nginx_image:${TAG}" notely-front
+
+      - name: Run app with docker compose
+        run: docker compose up -d
+
+      - name: Health check
+        run: |
+          sleep 10
+          for i in $(seq 1 5); do
+            status=$(curl -o /dev/null -s -w '%{http_code}' http://localhost:5001/health || true)
+            echo "health check attempt $i: HTTP $status"
+            if [ "$status" = "200" ]; then
+              echo "backend is healthy"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "health check failed after 5 attempts"
+          docker compose logs
+          exit 1
+
+      - name: E2E tests
+        env:
+          BASE_URL: http://localhost:5001
+        run: |
+          pip install requests
+          python flask-notely/testing_e2e.py
+
+      - name: Push release tag
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git tag -a "$TAG" -m "new tag for version $TAG"
+          git push origin "$TAG"
+
+      - name: Configure AWS credentials (OIDC)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::533813050020:role/notely-github-actions
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push images to ECR
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          docker tag "${PRODUCT}_flask_image:${TAG}" "${ECR_REPO_BACK}:${TAG}"
+          docker tag "${PRODUCT}_nginx_image:${TAG}" "${ECR_REPO_FRONT}:${TAG}"
+          docker push "${ECR_REPO_BACK}:${TAG}"
+          docker push "${ECR_REPO_FRONT}:${TAG}"
+
+      # Port of the Jenkins "notely_update_version" job: bump appVersion in the
+      # GitOps repo's Chart.yaml so ArgoCD deploys the new image tag.
+      - name: Checkout notely-kubernetes
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          repository: iddchn/notely-kubernetes
+          token: ${{ secrets.KUBE_REPO_TOKEN }}
+          path: kube-repo
+
+      - name: Bump chart appVersion
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          cd kube-repo
+          sed -i "s/^appVersion: \".*\"/appVersion: \"$TAG\"/" notely/notely-chart/Chart.yaml
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git add notely/notely-chart/Chart.yaml
+          git commit -m "update chart version $TAG"
+          git push origin main
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down || true

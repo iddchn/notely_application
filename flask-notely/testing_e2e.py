@@ -1,7 +1,8 @@
+import os
 import requests
 import json
 
-BASE_URL = "http://10.0.1.48:5001"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:5001")
 
 def test_signup():
     url = f"{BASE_URL}/user/signup"

@@ -10,8 +10,13 @@ on:
 env:
   AWS_REGION: us-east-1
   AWS_ACCOUNT_ID: "533813050020"
-  ECR_REPO_BACK: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-back
-  ECR_REPO_FRONT: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-front
+  # --- ECR (rollback): uncomment these two + the ECR steps below, and comment the JFrog lines/steps ---
+  # ECR_REPO_BACK: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-back
+  # ECR_REPO_FRONT: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-front
+  # --- JFrog Artifactory (Xray POC) ---
+  JFROG_REGISTRY: idandev.jfrog.io
+  REGISTRY_REPO_BACK: idandev.jfrog.io/notely-docker-local/idan/notely-back
+  REGISTRY_REPO_FRONT: idandev.jfrog.io/notely-docker-local/idan/notely-front
   PRODUCT: notely
 
 permissions:
@@ -101,24 +106,53 @@ jobs:
           git tag -a "$TAG" -m "new tag for version $TAG"
           git push origin "$TAG"
 
-      - name: Configure AWS credentials (OIDC)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::533813050020:role/notely-github-actions
-          aws-region: us-east-1
+      # --- ECR path: uncomment these three steps (and the ECR_REPO_* env vars) to switch back ---
+      # - name: Configure AWS credentials (OIDC)
+      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: arn:aws:iam::533813050020:role/notely-github-actions
+      #     aws-region: us-east-1
+      #
+      # - name: Login to Amazon ECR
+      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #
+      # - name: Push images to ECR
+      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      #   run: |
+      #     docker tag "${PRODUCT}_flask_image:${TAG}" "${ECR_REPO_BACK}:${TAG}"
+      #     docker tag "${PRODUCT}_nginx_image:${TAG}" "${ECR_REPO_FRONT}:${TAG}"
+      #     docker push "${ECR_REPO_BACK}:${TAG}"
+      #     docker push "${ECR_REPO_FRONT}:${TAG}"
 
-      - name: Login to Amazon ECR
+      - name: Login to JFrog Artifactory
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: aws-actions/amazon-ecr-login@v2
+        run: echo "${{ secrets.JFROG_TOKEN }}" | docker login "$JFROG_REGISTRY" -u "${{ secrets.JFROG_USER }}" --password-stdin
 
-      - name: Push images to ECR
+      - name: Push images to Artifactory
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
-          docker tag "${PRODUCT}_flask_image:${TAG}" "${ECR_REPO_BACK}:${TAG}"
-          docker tag "${PRODUCT}_nginx_image:${TAG}" "${ECR_REPO_FRONT}:${TAG}"
-          docker push "${ECR_REPO_BACK}:${TAG}"
-          docker push "${ECR_REPO_FRONT}:${TAG}"
+          docker tag "${PRODUCT}_flask_image:${TAG}" "${REGISTRY_REPO_BACK}:${TAG}"
+          docker tag "${PRODUCT}_nginx_image:${TAG}" "${REGISTRY_REPO_FRONT}:${TAG}"
+          docker push "${REGISTRY_REPO_BACK}:${TAG}"
+          docker push "${REGISTRY_REPO_FRONT}:${TAG}"
+
+      - name: Set up JFrog CLI
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: https://idandev.jfrog.io
+          JF_ACCESS_TOKEN: ${{ secrets.JFROG_TOKEN }}
+
+      # Non-blocking for the POC: prints Xray vulnerability results in the build
+      # log. Remove continue-on-error to gate releases on the scan.
+      - name: Xray scan images
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          jf docker scan "${REGISTRY_REPO_BACK}:${TAG}"
+          jf docker scan "${REGISTRY_REPO_FRONT}:${TAG}"
 
       # Port of the Jenkins "notely_update_version" job: bump appVersion in the
       # GitOps repo's Chart.yaml so ArgoCD deploys the new image tag.

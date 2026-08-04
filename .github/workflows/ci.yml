@@ -15,8 +15,8 @@ env:
   # ECR_REPO_FRONT: 533813050020.dkr.ecr.us-east-1.amazonaws.com/idan/notely-front
   # --- JFrog Artifactory (Xray POC) ---
   JFROG_REGISTRY: idandev.jfrog.io
-  REGISTRY_REPO_BACK: idandev.jfrog.io/notely-docker-local/idan/notely-back
-  REGISTRY_REPO_FRONT: idandev.jfrog.io/notely-docker-local/idan/notely-front
+  REGISTRY_REPO_BACK: idandev.jfrog.io/notely-docker-local-docker-local/idan/notely-back
+  REGISTRY_REPO_FRONT: idandev.jfrog.io/notely-docker-local-docker-local/idan/notely-front
   PRODUCT: notely
 
 permissions:

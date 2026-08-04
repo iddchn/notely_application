@@ -24,25 +24,16 @@ permissions:
   contents: write   # push release tags to this repo
 
 jobs:
-  ci:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Unit tests
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r flask-notely/requirements.txt
-          pytest
 
       # Same versioning scheme as the Jenkins pipeline: take the latest git tag
       # and bump the patch part; first release falls back to "<version.txt>.0".
@@ -62,16 +53,66 @@ jobs:
             tag="$(cat version.txt)"
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "version tag: $tag"
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r flask-notely/requirements.txt
+          pytest
+
+  build:
+    runs-on: ubuntu-latest
+    needs: version
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Build images
         run: |
           docker build -t "${PRODUCT}_flask_image:${TAG}" flask-notely
           docker build -t "${PRODUCT}_nginx_image:${TAG}" notely-front
 
+      # Hand the images to the publish job: jobs run on separate runners, so
+      # the images are saved as a workflow artifact and loaded back there.
+      - name: Save images
+        run: docker save "${PRODUCT}_flask_image:${TAG}" "${PRODUCT}_nginx_image:${TAG}" -o images.tar
+
+      - name: Upload images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: images.tar
+          retention-days: 1
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       # Only backend + mongo: the nginx image hardcodes the in-cluster DNS
       # resolver and cannot run outside Kubernetes; CI only tests the backend.
+      # Compose builds the backend image from source, so this job does not
+      # depend on the build job's artifacts.
       - name: Run app with docker compose
         run: docker compose up -d backend mongo
 
@@ -98,8 +139,32 @@ jobs:
           pip install requests
           python flask-notely/testing_e2e.py
 
+      - name: Cleanup
+        if: always()
+        run: docker compose down || true
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [version, unit-tests, build, e2e-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download images artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+
+      - name: Load images
+        run: docker load -i images.tar
+
       - name: Push release tag
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
@@ -108,18 +173,15 @@ jobs:
 
       # --- ECR path: uncomment these three steps (and the ECR_REPO_* env vars) to switch back ---
       # - name: Configure AWS credentials (OIDC)
-      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       #   uses: aws-actions/configure-aws-credentials@v4
       #   with:
       #     role-to-assume: arn:aws:iam::533813050020:role/notely-github-actions
       #     aws-region: us-east-1
       #
       # - name: Login to Amazon ECR
-      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       #   uses: aws-actions/amazon-ecr-login@v2
       #
       # - name: Push images to ECR
-      #   if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
       #   run: |
       #     docker tag "${PRODUCT}_flask_image:${TAG}" "${ECR_REPO_BACK}:${TAG}"
       #     docker tag "${PRODUCT}_nginx_image:${TAG}" "${ECR_REPO_FRONT}:${TAG}"
@@ -127,11 +189,9 @@ jobs:
       #     docker push "${ECR_REPO_FRONT}:${TAG}"
 
       - name: Login to JFrog Artifactory
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: echo "${{ secrets.JFROG_TOKEN }}" | docker login "$JFROG_REGISTRY" -u "${{ secrets.JFROG_USER }}" --password-stdin
 
       - name: Push images to Artifactory
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
           docker tag "${PRODUCT}_flask_image:${TAG}" "${REGISTRY_REPO_BACK}:${TAG}"
           docker tag "${PRODUCT}_nginx_image:${TAG}" "${REGISTRY_REPO_FRONT}:${TAG}"
@@ -139,7 +199,6 @@ jobs:
           docker push "${REGISTRY_REPO_FRONT}:${TAG}"
 
       - name: Set up JFrog CLI
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: jfrog/setup-jfrog-cli@v4
         env:
           JF_URL: https://idandev.jfrog.io
@@ -148,16 +207,21 @@ jobs:
       # Non-blocking for the POC: prints Xray vulnerability results in the build
       # log. Remove continue-on-error to gate releases on the scan.
       - name: Xray scan images
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         continue-on-error: true
         run: |
           jf docker scan "${REGISTRY_REPO_BACK}:${TAG}"
           jf docker scan "${REGISTRY_REPO_FRONT}:${TAG}"
 
-      # Port of the Jenkins "notely_update_version" job: bump appVersion in the
-      # GitOps repo's Chart.yaml so ArgoCD deploys the new image tag.
+  # Port of the Jenkins "notely_update_version" job: bump appVersion in the
+  # GitOps repo's Chart.yaml so ArgoCD deploys the new image tag.
+  update-gitops:
+    runs-on: ubuntu-latest
+    needs: [version, publish]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    env:
+      TAG: ${{ needs.version.outputs.tag }}
+    steps:
       - name: Checkout notely-kubernetes
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/checkout@v4
         with:
           repository: iddchn/notely-kubernetes
@@ -165,7 +229,6 @@ jobs:
           path: kube-repo
 
       - name: Bump chart appVersion
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
           cd kube-repo
           sed -i "s/^appVersion: \".*\"/appVersion: \"$TAG\"/" notely/notely-chart/Chart.yaml
@@ -174,7 +237,3 @@ jobs:
           git add notely/notely-chart/Chart.yaml
           git commit -m "update chart version $TAG"
           git push origin main
-
-      - name: Cleanup
-        if: always()
-        run: docker compose down || true

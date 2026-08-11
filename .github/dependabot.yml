@@ -1,0 +1,33 @@
+# Dependabot: opens PRs for outdated/vulnerable dependencies. Complements the
+# CI scanners — deps-scan/Trivy FIND known CVEs, Dependabot proposes the FIX.
+# The github-actions ecosystem also maintains the SHA pins in ci.yml (it
+# understands the "sha  # vX.Y.Z" format and bumps both together).
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /flask-notely
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /notely-front
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Bumps the FROM base images (python, node, nginx) in the Dockerfiles.
+  - package-ecosystem: docker
+    directory: /flask-notely
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /notely-front
+    schedule:
+      interval: weekly

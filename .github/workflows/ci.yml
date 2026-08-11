@@ -19,18 +19,26 @@ env:
   REGISTRY_REPO_FRONT: idandev.jfrog.io/notely-docker-local-docker-local/idan/notely-front
   PRODUCT: notely
 
+# Least privilege: every job gets a read-only GITHUB_TOKEN by default; jobs
+# that need more (publish pushes the release tag) elevate individually.
 permissions:
-  id-token: write   # OIDC token for assuming the AWS role
-  contents: write   # push release tags to this repo
+  contents: read
+
+# One run per branch: superseded PR runs are cancelled to save minutes, but
+# runs on main are queued (never cancelled) so a publish is never killed mid-push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   version:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -57,12 +65,13 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
 
@@ -72,19 +81,124 @@ jobs:
           pip install -r flask-notely/requirements.txt
           pytest
 
+  # Static analysis of our own code: ruff lints for bug-prone patterns, bandit
+  # looks for security issues (hardcoded passwords, injection, weak crypto).
+  sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Ruff lint
+        continue-on-error: true  # report-only — delete this line to make blocking
+        run: pipx run ruff check flask-notely
+
+      # -ll = medium severity and up; tests excluded (bandit flags pytest's
+      # assert usage as B101, which is noise).
+      - name: Bandit SAST
+        continue-on-error: true  # report-only — delete this line to make blocking
+        run: pipx run bandit -r flask-notely -ll -x flask-notely/venv,flask-notely/test_routers_unit.py,flask-notely/testing_e2e.py
+
+  # Scans the FULL git history (fetch-depth: 0), not just the diff: a secret
+  # that was ever pushed is compromised even if a later commit removed it.
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        continue-on-error: true  # report-only — delete this line to make blocking
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Known-CVE scan of third-party dependencies (ours are scanned by sast above).
+  deps-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: pip-audit (backend)
+        continue-on-error: true  # report-only — delete this line to make blocking
+        run: pipx run pip-audit -r flask-notely/requirements.txt
+
+      # Audits package-lock.json directly — no npm install needed. Blocking
+      # this step will fail until react-scripts is upgraded off ^3.0.1.
+      - name: npm audit (frontend)
+        continue-on-error: true  # report-only — delete this line to make blocking
+        working-directory: notely-front
+        run: npm audit --audit-level=high
+
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs: version
     env:
       TAG: ${{ needs.version.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Build images
         run: |
           docker build -t "${PRODUCT}_flask_image:${TAG}" flask-notely
           docker build -t "${PRODUCT}_nginx_image:${TAG}" notely-front
+
+      # Scan the images BEFORE saving them: once blocking (exit-code: "1"),
+      # a vulnerable image never even becomes a workflow artifact.
+      - name: Trivy scan backend image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        with:
+          image-ref: ${{ env.PRODUCT }}_flask_image:${{ env.TAG }}
+          severity: HIGH,CRITICAL
+          exit-code: "0"  # report-only — change to "1" to make blocking
+
+      - name: Trivy scan frontend image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        with:
+          image-ref: ${{ env.PRODUCT }}_nginx_image:${{ env.TAG }}
+          severity: HIGH,CRITICAL
+          exit-code: "0"  # report-only — change to "1" to make blocking
+
+      # SBOM (software bill of materials): a machine-readable inventory of every
+      # package in the image, so "are we affected by CVE-X?" is answerable later
+      # without rebuilding anything.
+      - name: SBOM backend image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        with:
+          image-ref: ${{ env.PRODUCT }}_flask_image:${{ env.TAG }}
+          format: cyclonedx
+          output: sbom-backend.cdx.json
+
+      - name: SBOM frontend image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        with:
+          image-ref: ${{ env.PRODUCT }}_nginx_image:${{ env.TAG }}
+          format: cyclonedx
+          output: sbom-frontend.cdx.json
+
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: sboms
+          path: sbom-*.cdx.json
 
       # Hand the images to the publish job: jobs run on separate runners, so
       # the images are saved as a workflow artifact and loaded back there.
@@ -92,7 +206,7 @@ jobs:
         run: docker save "${PRODUCT}_flask_image:${TAG}" "${PRODUCT}_nginx_image:${TAG}" -o images.tar
 
       - name: Upload images artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: docker-images
           path: images.tar
@@ -100,12 +214,13 @@ jobs:
 
   e2e-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.12"
 
@@ -145,19 +260,24 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    needs: [version, unit-tests, build, e2e-tests]
+    timeout-minutes: 20
+    needs: [version, unit-tests, build, e2e-tests, sast, secret-scan, deps-scan]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # The only job that needs to write: it pushes the release tag.
+    permissions:
+      contents: write
+      # id-token: write  # re-add only if the commented ECR/OIDC steps below return
     env:
       TAG: ${{ needs.version.outputs.tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Download images artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: docker-images
 
@@ -199,7 +319,7 @@ jobs:
           docker push "${REGISTRY_REPO_FRONT}:${TAG}"
 
       - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4
+        uses: jfrog/setup-jfrog-cli@5a4fbe1e30dbb570cc62d2513421c4b9bc3c9959  # v4.10.1
         env:
           JF_URL: https://idandev.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.JFROG_TOKEN }}
@@ -216,13 +336,14 @@ jobs:
   # GitOps repo's Chart.yaml so ArgoCD deploys the new image tag.
   update-gitops:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [version, publish]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     env:
       TAG: ${{ needs.version.outputs.tag }}
     steps:
       - name: Checkout notely-kubernetes
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           repository: iddchn/notely-kubernetes
           token: ${{ secrets.KubeRepoToken }}

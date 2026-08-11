@@ -1,4 +1,4 @@
-FROM python:3.12-slim as builder
+FROM python:3.14-slim as builder
 
 WORKDIR /app
 # Environment variables to prevent bytecode generation and enable unbuffered logs
@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps -r requirements.txt -w /wheels
 
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 

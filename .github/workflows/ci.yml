@@ -319,7 +319,7 @@ jobs:
           docker push "${REGISTRY_REPO_FRONT}:${TAG}"
 
       - name: Set up JFrog CLI
-        uses: jfrog/setup-jfrog-cli@5a4fbe1e30dbb570cc62d2513421c4b9bc3c9959  # v4.10.1
+        uses: jfrog/setup-jfrog-cli@deda456d982fc5e9a7a020b63eb0d2968aedd33e  # v5.1.0
         env:
           JF_URL: https://idandev.jfrog.io
           JF_ACCESS_TOKEN: ${{ secrets.JFROG_TOKEN }}

@@ -1,4 +1,4 @@
-FROM node:23.1.0 as build
+FROM node:26.7.0 as build
 WORKDIR /app
 
 ENV NODE_OPTIONS="--openssl-legacy-provider"

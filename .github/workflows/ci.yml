@@ -164,14 +164,14 @@ jobs:
       # Scan the images BEFORE saving them: once blocking (exit-code: "1"),
       # a vulnerable image never even becomes a workflow artifact.
       - name: Trivy scan backend image
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # 0.36.0
         with:
           image-ref: ${{ env.PRODUCT }}_flask_image:${{ env.TAG }}
           severity: HIGH,CRITICAL
           exit-code: "0"  # report-only — change to "1" to make blocking
 
       - name: Trivy scan frontend image
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # 0.36.0
         with:
           image-ref: ${{ env.PRODUCT }}_nginx_image:${{ env.TAG }}
           severity: HIGH,CRITICAL
@@ -181,14 +181,14 @@ jobs:
       # package in the image, so "are we affected by CVE-X?" is answerable later
       # without rebuilding anything.
       - name: SBOM backend image
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # 0.36.0
         with:
           image-ref: ${{ env.PRODUCT }}_flask_image:${{ env.TAG }}
           format: cyclonedx
           output: sbom-backend.cdx.json
 
       - name: SBOM frontend image
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1  # 0.35.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # 0.36.0
         with:
           image-ref: ${{ env.PRODUCT }}_nginx_image:${{ env.TAG }}
           format: cyclonedx
